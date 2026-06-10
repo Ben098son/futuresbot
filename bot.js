@@ -859,8 +859,8 @@ async function main() {
   const runStart = new Date().toISOString()
   console.log(`[${runStart}] FuturesBot v3 cron started`)
 
-  if (!JSONBIN_KEY || !JSONBIN_BIN_ID) {
-    console.error("WARNING: JSONBIN_KEY or JSONBIN_BIN_ID not set. Add them to Environment Variables.")
+  if (!GITHUB_TOKEN || !GIST_ID) {
+    console.error("WARNING: GITHUB_TOKEN or GIST_ID not set. Add them to Repository Secrets.")
     return
   }
 
