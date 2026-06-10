@@ -7,7 +7,7 @@
 //  - Max confirmation candles configurable
 // ═══════════════════════════════════════
 
-const GITHUB_TOKEN   = process.env.GITHUB_TOKEN
+const GITHUB_TOKEN   = process.env.BOT_TOKEN
 const GIST_ID        = process.env.GIST_ID
 const GIST_URL       = `https://api.github.com/gists/${GIST_ID}`
 
