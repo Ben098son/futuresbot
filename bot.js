@@ -309,7 +309,7 @@ async function getMultiTFLevels(sym, dir) {
 
 // ── Trend Follow Strategy ──────────────
 // 1D EMA50 context + 4H CVD/OI exhaustion
-async function detectTrendFollow(sym) {
+async function detectTrendFollow(sym, MIN_RR = 2) {
   try {
   // STEP 1: VPVR from 1H
   const bars1h = await getOKXBars(sym, '1H', 48)
@@ -507,7 +507,11 @@ ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB`
 }
 
 // ── Phase 1: Detect CVD + OI divergence ──
-async function detectPhase1(sym, bars) {
+async function detectPhase1(sym, bars, opts = {}) {
+  const ENTRY_MODE      = opts.ENTRY_MODE      || 'trendfollow'
+  const MIN_RR          = opts.MIN_RR          || 2
+  const USE_4H_FILTER   = opts.USE_4H_FILTER   !== false
+  const MAX_CANDLE_WAIT = opts.MAX_CANDLE_WAIT  || 4
   const n = 14
   const cvd = calcCVD(bars)
   if (cvd.length < n) return null
@@ -1077,7 +1081,7 @@ async function main() {
 
     // TREND FOLLOW MODE — use different detection logic
     if (ENTRY_MODE === 'trendfollow') {
-      const tfsig = await detectTrendFollow(sym)
+      const tfsig = await detectTrendFollow(sym, MIN_RR)
       if (tfsig) {
         const freshPrice = await getOKXPrice(sym) || tfsig.price
         const slDist  = Math.abs(tfsig.price - tfsig.sl)
@@ -1106,7 +1110,7 @@ async function main() {
       continue
     }
 
-    const sig = await detectPhase1(sym, bars)
+    const sig = await detectPhase1(sym, bars, { ENTRY_MODE, MIN_RR, USE_4H_FILTER, MAX_CANDLE_WAIT })
 
     if (sig) {
       if (sig.isLimit) {
