@@ -41,6 +41,22 @@ async function saveState(state) {
   } catch(e) { console.error("saveState failed:", e.message) }
 }
 
+async function saveBotLog(log) {
+  // Save log to separate file — not overwritten by bot HTML
+  try {
+    await fetch(GIST_URL, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `token ${GITHUB_TOKEN}`,
+        "Accept": "application/vnd.github.v3+json"
+      },
+      body: JSON.stringify({ files: { 'botlog.json': { content: JSON.stringify(log) } } })
+    })
+    console.log(`[BotLog] Saved ${log.length} entries to Gist`)
+  } catch(e) { console.error("saveBotLog failed:", e.message) }
+}
+
 function defaultState() {
   return {
     portfolio: { balance: 100, equity: 100, risk: 0.02, defaultLev: 10, win: 0, loss: 0, realized: 0, usedMargin: 0 },
@@ -1175,11 +1191,11 @@ async function main() {
   })
   if (state.log.length > 48) state.log.length = 48
 
-  // ── Step 7: Write lock + save to JSONBin ─
-  // Set a lock timestamp so bot HTML knows val.town just wrote
-  // Bot HTML reads this and skips auto-save for 60 seconds after val.town run
+  // ── Step 7: Save state + log separately ──
   state._valTownLastRun = Date.now()
   await saveState(state)
+  // Save log to separate botlog.json — prevents HTML from overwriting it
+  await saveBotLog(state.log)
 
   console.log(`[${runStart}] Done. Balance: $${state.portfolio.balance.toFixed(2)} | Equity: $${state.portfolio.equity.toFixed(2)} | Positions: ${state.positions.length} | Pending: ${Object.keys(state.pendingSignals).length}`)
   console.log("Scan:", scanLog)
