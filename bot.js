@@ -347,18 +347,18 @@ async function detectTrendFollow(sym, MIN_RR = 2) {
 
   const zoneLabel = aboveVAH ? 'aboveVAH' : atVAH ? 'VAH' : belowVAL ? 'belowVAL' : 'VAL'
 
-  // STEP 2: CVD 1H — cvdPrev = candle 8-15, cvdNow = 4 candle terakhir
-  const bars1hCVD = await getOKXBars(sym, '1H', 20)
-  if (!bars1hCVD || bars1hCVD.length < 15) return null
+  // STEP 2: CVD 15m — cvdNow = 4 candle terakhir, cvdPrev = candle 4-20
+  const bars15mCVD = await getOKXBars(sym, '15m', 24)
+  if (!bars15mCVD || bars15mCVD.length < 20) return null
 
-  const cvd1h      = calcCVD(bars1hCVD)
-  const cvdNow     = cvd1h.slice(-4).map(c=>c.value).reduce((a,b)=>a+b,0)/4
-  const cvdBefore  = cvd1h.slice(-15,-8).map(c=>c.value).reduce((a,b)=>a+b,0)/7
+  const cvd15m     = calcCVD(bars15mCVD)
+  const cvdNow     = cvd15m.slice(-4).map(c=>c.value).reduce((a,b)=>a+b,0)/4
+  const cvdBefore  = cvd15m.slice(-20,-4).map(c=>c.value).reduce((a,b)=>a+b,0)/16
   const cvdRising  = cvdNow > cvdBefore
   const cvdFalling = cvdNow < cvdBefore
 
-  const priceNow  = bars1hCVD.slice(-4).map(b=>b.close).reduce((a,b)=>a+b,0)/4
-  const pricePrev = bars1hCVD.slice(-8,-4).map(b=>b.close).reduce((a,b)=>a+b,0)/4
+  const priceNow  = bars15mCVD.slice(-4).map(b=>b.close).reduce((a,b)=>a+b,0)/4
+  const pricePrev = bars15mCVD.slice(-8,-4).map(b=>b.close).reduce((a,b)=>a+b,0)/4
   const priceUp   = priceNow > pricePrev
   const bullDiv   = !priceUp && cvdRising
   const bearDiv   = priceUp  && cvdFalling
@@ -366,18 +366,18 @@ async function detectTrendFollow(sym, MIN_RR = 2) {
   const cvdOk = dir === 'LONG' ? (cvdRising || bullDiv) : (cvdFalling || bearDiv)
   if (!cvdOk) return null
 
-  // Fetch 15m for SL/volume
-  const bars15m = await getOKXBars(sym, '15m', 20)
+  // Fetch 15m for SL/volume (reuse bars15mCVD)
+  const bars15m = bars15mCVD
 
-  // STEP 3: OI — aktif sebagai konfirmasi arah
+  // STEP 3: OI 1H — oiPrev max 4 jam
   let oiRising = false, oiFalling = false, oiOk = true
   try {
-    const bars1hOI = await getOKXBars(sym, '1H', 8)
+    const bars1hOI = await getOKXBars(sym, '1H', 6)
     if (bars1hOI && bars1hOI.length >= 4) {
       const oiVals  = bars1hOI.map(b => b.openInterest||0).filter(v=>v>0)
       if (oiVals.length >= 4) {
         const oiNow  = oiVals.slice(-2).reduce((a,b)=>a+b,0)/2
-        const oiPrev = oiVals.slice(-6,-2).reduce((a,b)=>a+b,0)/Math.max(oiVals.slice(-6,-2).length,1)
+        const oiPrev = oiVals.slice(-4,-2).reduce((a,b)=>a+b,0)/2  // max 4 jam
         oiRising  = oiNow > oiPrev * 1.02
         oiFalling = oiNow < oiPrev * 0.98
         if (oiNow < oiPrev * 0.85) oiOk = false
