@@ -1,2 +1,3 @@
 # futuresbot
 futuresbot
+Bot aktif
